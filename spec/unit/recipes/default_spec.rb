@@ -11,25 +11,48 @@ describe 'node::default' do
     let(:chef_run) do
       # for a complete list of available platforms and versions see:
       # https://github.com/customink/fauxhai/blob/master/PLATFORMS.md
-      runner = ChefSpec::ServerRunner.new(platform: 'ubuntu', version: '16.04')
+      runner = ChefSpec::SoloRunner.new(platform: 'ubuntu', version: '16.04')
       runner.converge(described_recipe)
     end
 
     it 'converges successfully' do
       expect { chef_run }.to_not raise_error
     end
-  end
 
-  context 'When all attributes are default, on CentOS 7.4.1708' do
-    let(:chef_run) do
-      # for a complete list of available platforms and versions see:
-      # https://github.com/customink/fauxhai/blob/master/PLATFORMS.md
-      runner = ChefSpec::ServerRunner.new(platform: 'centos', version: '7.4.1708')
-      runner.converge(described_recipe)
+    it 'runs apt get update' do
+      expect(chef_run).to update_apt_update 'update_sources'
     end
 
-    it 'converges successfully' do
-      expect { chef_run }.to_not raise_error
+    it 'should install nginx' do
+      expect(chef_run).to install_package 'nginx'
+    end
+
+    it 'enable the nginx service' do
+      expect(chef_run).to enable_service 'nginx'
+    end
+
+    it 'start the nginx service' do
+      expect(chef_run).to start_service 'nginx'
+    end
+
+    it 'should install pm2 via npm' do
+      expect(chef_run).to install_nodejs_npm('pm2')
+    end
+
+    it 'should install the nodejs from recipe' do
+      expect(chef_run).to include_recipe('nodejs')
+    end
+
+    it 'create symbolic link in chef' do
+      expect(chef_run).to create_link('/etc/nginx/sites-enabled/proxy.conf').with_link_type(:symbolic)
+    end
+
+    it 'should delete symlink from default config in sites-enabled' do
+      expect(chef_run).to delete_link('/etc/nginx/sites-enabled/default')
+    end
+
+    it 'should create proxy.conf template in sites-available' do
+      expect(chef_run).to create_template('etc/nginx/sites-available/proxy.conf').with_variables(proxy_port)
     end
   end
 end
